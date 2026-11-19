@@ -81,6 +81,34 @@ flowchart LR
 | **Decoding** | HMM: classifier emissions, transitions from bounded Dijkstra driving distance, U-turn penalty, chain breaks on gaps | `decoding/` |
 | **Serving** | FastAPI with request logging, timeouts, clear 404/422/503/504 errors; React + Leaflet UI | `backend/`, `frontend/` |
 
+## HMM and Viterbi-Based Route Reconstruction
+
+The machine learning classifier predicts the probability of each candidate road being the correct road for every GPS fix. However, selecting the highest-probability road independently for every GPS fix can result in incorrect or disconnected routes.
+
+To overcome this limitation, PathSnap uses a Hidden Markov Model (HMM) combined with the Viterbi algorithm.
+
+### 1. Emission Probabilities
+
+The classifier provides probability scores for candidate roads at every GPS location. These scores act as emission probabilities and indicate how likely each candidate road is to match the observed GPS position.
+
+### 2. Transition Scoring
+
+The HMM evaluates whether moving from one candidate road to another is realistic. It uses bounded Dijkstra-based driving distance from the road network and applies a U-turn penalty to discourage unlikely direction reversals.
+
+### 3. Viterbi Decoding
+
+The Viterbi algorithm considers both emission probabilities and transition scores to identify the most likely sequence of roads across the trip. Instead of making independent decisions for every GPS fix, it finds a consistent road sequence.
+
+### 4. Handling GPS Gaps
+
+When large gaps occur between GPS observations, the decoder breaks the sequence into separate continuous chains rather than forcing unreliable connections between distant observations.
+
+### 5. Final Route Reconstruction
+
+After decoding, the selected road segments are connected using shortest-path reconstruction where required. This produces a more continuous and drivable route.
+
+**Key Benefit:** Combining the classifier with HMM and Viterbi improves route accuracy and continuity by considering the complete sequence of GPS observations instead of making independent predictions for individual GPS points.
+
 ## Results
 
 | Metric | Student-test · classifier | Student-test · **+ HMM** | Held-out evaluator · classifier | Held-out evaluator · **+ HMM** |
